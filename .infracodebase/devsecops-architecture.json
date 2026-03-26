@@ -1,0 +1,195 @@
+{
+  "name": "AWS DevSecOps Pipeline Architecture",
+  "nodes": [
+    {
+      "id": "github",
+      "label": "GitHub",
+      "subtitle": "Source Repository",
+      "icon": "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg",
+      "x": 660,
+      "y": 90
+    },
+    {
+      "id": "codestar",
+      "label": "CodeStar Connection",
+      "subtitle": "Webhook Integration",
+      "icon": "/icons/aws/devtools/codestar.png",
+      "x": 660,
+      "y": 340
+    },
+    {
+      "id": "pipeline",
+      "label": "CodePipeline",
+      "subtitle": "3-Stage Pipeline",
+      "icon": "/icons/aws/devtools/codepipeline.png",
+      "x": 660,
+      "y": 590
+    },
+    {
+      "id": "security_scan",
+      "label": "CodeBuild",
+      "subtitle": "Security Scan Phase",
+      "icon": "/icons/aws/devtools/codebuild.png",
+      "x": 440,
+      "y": 840
+    },
+    {
+      "id": "deploy",
+      "label": "CodeBuild",
+      "subtitle": "Terraform Deploy",
+      "icon": "/icons/aws/devtools/codebuild.png",
+      "x": 880,
+      "y": 840
+    },
+    {
+      "id": "artifacts_bucket",
+      "label": "S3 Bucket",
+      "subtitle": "Pipeline Artifacts",
+      "icon": "/icons/aws/storage/simple-storage-service-s3-bucket.png",
+      "x": 660,
+      "y": 1090
+    },
+    {
+      "id": "state_bucket",
+      "label": "S3 Bucket",
+      "subtitle": "Terraform State",
+      "icon": "/icons/aws/storage/simple-storage-service-s3-bucket-with-objects.png",
+      "x": 1100,
+      "y": 1090
+    },
+    {
+      "id": "cloudwatch",
+      "label": "CloudWatch Logs",
+      "subtitle": "Pipeline Logs",
+      "icon": "/icons/aws/management/cloudwatch-logs.png",
+      "x": 220,
+      "y": 1090
+    },
+    {
+      "id": "config",
+      "label": "AWS Config",
+      "subtitle": "Compliance Monitoring",
+      "icon": "/icons/aws/management/config.png",
+      "x": 60,
+      "y": 340
+    },
+    {
+      "id": "config_bucket",
+      "label": "S3 Bucket",
+      "subtitle": "Config Data",
+      "icon": "/icons/aws/storage/simple-storage-service-s3-bucket.png",
+      "x": 60,
+      "y": 590
+    },
+    {
+      "id": "eventbridge",
+      "label": "EventBridge",
+      "subtitle": "Compliance Events",
+      "icon": "/icons/aws/integration/eventbridge.png",
+      "x": 280,
+      "y": 340
+    },
+    {
+      "id": "lambda",
+      "label": "Lambda",
+      "subtitle": "Self-Healing Function",
+      "icon": "/icons/aws/compute/lambda.png",
+      "x": 280,
+      "y": 590
+    },
+    {
+      "id": "sg",
+      "label": "Security Group",
+      "x": 220,
+      "y": 840,
+      "subtitle": "Monitored Resource",
+      "icon": "/icons/aws/network/vpc-elastic-network-interface.png"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "github",
+      "target": "codestar",
+      "label": "git push"
+    },
+    {
+      "id": "e2",
+      "source": "codestar",
+      "target": "pipeline",
+      "label": "trigger"
+    },
+    {
+      "id": "e3",
+      "source": "pipeline",
+      "target": "security_scan",
+      "label": "Stage 2"
+    },
+    {
+      "id": "e4",
+      "source": "pipeline",
+      "target": "deploy",
+      "label": "Stage 3"
+    },
+    {
+      "id": "e5",
+      "source": "security_scan",
+      "target": "artifacts_bucket",
+      "label": "store artifacts"
+    },
+    {
+      "id": "e6",
+      "source": "deploy",
+      "target": "artifacts_bucket",
+      "label": "read source"
+    },
+    {
+      "id": "e7",
+      "source": "deploy",
+      "target": "state_bucket",
+      "label": "read/write state"
+    },
+    {
+      "id": "e8",
+      "source": "config",
+      "target": "config_bucket",
+      "label": "store data"
+    },
+    {
+      "id": "e9",
+      "source": "config",
+      "target": "eventbridge",
+      "label": "compliance change"
+    },
+    {
+      "id": "e10",
+      "source": "eventbridge",
+      "target": "lambda",
+      "label": "invoke"
+    },
+    {
+      "id": "e11",
+      "source": "lambda",
+      "target": "sg",
+      "label": "restore golden state"
+    },
+    {
+      "id": "e12",
+      "source": "lambda",
+      "target": "cloudwatch",
+      "label": "logs"
+    },
+    {
+      "id": "e13",
+      "source": "pipeline",
+      "target": "cloudwatch",
+      "label": "logs"
+    },
+    {
+      "id": "e14",
+      "source": "config",
+      "target": "sg",
+      "label": "monitor"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+# Example terraform.tfvars file
+# Copy this to terraform.tfvars and fill in your values
+
+aws_region  = "us-east-1"
+environment = "dev"
+project_name = "devsecops-pipeline"
+
+# GitHub repository in format: owner/repo-name
+github_repo = "your-github-username/your-repo-name"
+github_branch = "main"
+
+# ARN of AWS CodeStar Connection (create this first via AWS Console)
+# See setup instructions in README.md
+codestar_connection_arn = "arn:aws:codestar-connections:us-east-1:123456789012:connection/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# CodeBuild configuration (Free Tier compatible)
+codebuild_compute_type = "BUILD_GENERAL1_SMALL"
+codebuild_image        = "aws/codebuild/standard:7.0"
+
+# Golden state security group rules for self-healing
+# These rules will be enforced when drift is detected
+golden_security_group_rules = [
+  {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "HTTPS from anywhere"
+  },
+  {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "HTTP from anywhere"
+  }
+]
+
+# Enable self-healing automation
+enable_self_healing = true
+
+# Additional tags
+tags = {
+  Owner = "DevOps Team"
+  CostCenter = "Engineering"
+}

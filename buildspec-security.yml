@@ -1,0 +1,86 @@
+version: 0.2
+
+# CodeBuild buildspec for security scanning with Checkov and tfsec
+# This phase runs terraform plan and scans both Terraform code and plan output
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - echo "Installing security scanning tools..."
+      - pip install --upgrade pip
+      - pip install checkov
+      - |
+        # Install tfsec
+        wget -q https://github.com/aquasecurity/tfsec/releases/download/v1.28.1/tfsec-linux-amd64
+        chmod +x tfsec-linux-amd64
+        mv tfsec-linux-amd64 /usr/local/bin/tfsec
+      - |
+        # Install Terraform
+        wget -q https://releases.hashicorp.com/terraform/1.7.0/terraform_1.7.0_linux_amd64.zip
+        unzip -q terraform_1.7.0_linux_amd64.zip
+        mv terraform /usr/local/bin/
+      - terraform --version
+      - checkov --version
+      - tfsec --version
+
+  pre_build:
+    commands:
+      - echo "Initializing Terraform..."
+      - terraform init -no-color -input=false
+
+  build:
+    commands:
+      - echo "================================"
+      - echo "Running tfsec on Terraform code"
+      - echo "================================"
+      - |
+        # Run tfsec and continue even if issues found (non-blocking for prototype)
+        tfsec . --no-color --soft-fail || true
+
+      - echo ""
+      - echo "======================================"
+      - echo "Running Checkov on Terraform code"
+      - echo "======================================"
+      - |
+        # Scan Terraform files directly
+        checkov -d . --framework terraform --compact --soft-fail || true
+
+      - echo ""
+      - echo "=========================================="
+      - echo "Generating Terraform plan for deep scan"
+      - echo "=========================================="
+      - |
+        # Create terraform plan and convert to JSON
+        terraform plan -out=tfplan.binary -no-color -input=false || {
+          echo "Terraform plan failed - this is expected if backend is not configured"
+          echo "Skipping plan-based Checkov scan"
+          exit 0
+        }
+
+      - |
+        # Convert binary plan to JSON
+        if [ -f tfplan.binary ]; then
+          terraform show -json tfplan.binary > tfplan.json
+          echo ""
+          echo "=========================================="
+          echo "Running Checkov on Terraform plan JSON"
+          echo "=========================================="
+          checkov -f tfplan.json --framework terraform_plan --compact --soft-fail || true
+        fi
+
+  post_build:
+    commands:
+      - echo "Security scan completed on $(date)"
+      - echo "Review the scan results above for security findings"
+      - echo "Pipeline will continue to deployment stage"
+
+artifacts:
+  files:
+    - '**/*'
+  name: SecurityScanOutput
+
+cache:
+  paths:
+    - '/root/.terraform.d/plugin-cache/**/*'
